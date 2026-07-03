@@ -8,6 +8,7 @@ var (
 	Handlers = map[string]func([]Value) Value{
 		"PING": ping,
 		"SET":  set,
+		"GET":  get,
 	}
 
 	SETs   = map[string]string{}
@@ -35,4 +36,22 @@ func set(args []Value) Value {
 	SETsMu.Unlock()
 
 	return Value{typ: "string", str: "OK"}
+}
+
+func get(args []Value) Value {
+	if len(args) != 1 {
+		return Value{typ: "error", str: "error: GET command requires 1 argument only."}
+	}
+
+	key := args[0].bulk
+
+	SETsMu.RLock()
+	val, ok := SETs[key]
+	SETsMu.RUnlock()
+
+	if !ok {
+		return Value{typ: "null"}
+	}
+
+	return Value{typ: "bulk", bulk: val}
 }
