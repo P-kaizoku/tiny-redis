@@ -9,10 +9,13 @@ var (
 		"PING": ping,
 		"SET":  set,
 		"GET":  get,
+		"HSET": hset,
 	}
 
-	SETs   = map[string]string{}
-	SETsMu = sync.RWMutex{}
+	HSETs   = map[string]map[string]string{}
+	SETs    = map[string]string{}
+	SETsMu  = sync.RWMutex{}
+	HSETsMu = sync.RWMutex{}
 )
 
 func ping(args []Value) Value {
@@ -54,4 +57,23 @@ func get(args []Value) Value {
 	}
 
 	return Value{typ: "bulk", bulk: val}
+}
+
+func hset(args []Value) Value {
+	if len(args) != 3 {
+		return Value{typ: "error", str: "error: HSET requires 3 arguments."}
+	}
+
+	hash := args[0].bulk
+	key := args[1].bulk
+	value := args[2].bulk
+
+	HSETsMu.Lock()
+	if _, ok := HSETs[hash]; !ok {
+		HSETs[hash] = map[string]string{}
+	}
+	HSETs[hash][key] = value
+	HSETsMu.Unlock()
+
+	return Value{typ: "string", str: "OK"}
 }
