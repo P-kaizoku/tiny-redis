@@ -10,6 +10,7 @@ var (
 		"SET":  set,
 		"GET":  get,
 		"HSET": hset,
+		"HGET": hget,
 	}
 
 	HSETs   = map[string]map[string]string{}
@@ -76,4 +77,22 @@ func hset(args []Value) Value {
 	HSETsMu.Unlock()
 
 	return Value{typ: "string", str: "OK"}
+}
+
+func hget(args []Value) Value {
+	if len(args) != 2 {
+		return Value{typ: "error", str: "error: HGET command requires 2 arguments only."}
+	}
+
+	hash := args[0].bulk
+	key := args[1].bulk
+
+	HSETsMu.RLock()
+	value, ok := HSETs[hash][key]
+	HSETsMu.RUnlock()
+	if !ok {
+		return Value{typ: "null"}
+	}
+
+	return Value{typ: "bulk", bulk: value}
 }
