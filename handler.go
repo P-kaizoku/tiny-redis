@@ -6,11 +6,12 @@ import (
 
 var (
 	Handlers = map[string]func([]Value) Value{
-		"PING": ping,
-		"SET":  set,
-		"GET":  get,
-		"HSET": hset,
-		"HGET": hget,
+		"PING":    ping,
+		"SET":     set,
+		"GET":     get,
+		"HSET":    hset,
+		"HGET":    hget,
+		"HGETALL": hgetall,
 	}
 
 	HSETs   = map[string]map[string]string{}
@@ -33,7 +34,7 @@ func set(args []Value) Value {
 	}
 
 	key := args[0].bulk
-	val := args[0].bulk
+	val := args[1].bulk
 
 	SETsMu.Lock()
 	SETs[key] = val
@@ -95,4 +96,30 @@ func hget(args []Value) Value {
 	}
 
 	return Value{typ: "bulk", bulk: value}
+}
+
+func hgetall(args []Value) Value {
+	if len(args) != 1 {
+		return Value{typ: "error", str: "error: HGETALL command requires 1 arguments."}
+	}
+
+	hash := args[0].bulk
+
+	HSETsMu.RLock()
+	innerMap, ok := HSETs[hash]
+	if !ok {
+		HSETsMu.RUnlock()
+		return Value{typ: "null"}
+	}
+
+	results := make([]Value, 0, len(innerMap)*2)
+
+	for k, v := range innerMap {
+		results = append(results, Value{typ: "bulk", bulk: k})
+		results = append(results, Value{typ: "bulk", bulk: v})
+	}
+
+	HSETsMu.RUnlock()
+
+	return Value{typ: "array", array: results}
 }
