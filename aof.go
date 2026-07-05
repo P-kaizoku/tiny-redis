@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -54,5 +55,26 @@ func (aof *Aof) Write(v Value) error {
 		return err
 	}
 
+	return nil
+}
+
+func (aof *Aof) Read(callback func(value Value)) error {
+	aof.mu.Lock()
+
+	defer aof.mu.Unlock()
+
+	resp := NewResp(aof.file)
+
+	for {
+		value, err := resp.Read()
+		if err == nil {
+			callback(value)
+		} else if err == io.EOF {
+			break
+		} else {
+			return err
+		}
+
+	}
 	return nil
 }
